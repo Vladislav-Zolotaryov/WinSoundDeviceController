@@ -52,7 +52,7 @@ public:
 		SAFE_RELEASE(deviceEnumeration);
 	}
 
-	bool SetDefaultAudioPlaybackDevice(LPCWSTR devId) {
+	bool setDefaultAudioPlaybackDevice(LPCWSTR devId) {
 		IPolicyConfig *pPolicyConfig;
 		ERole reserved = eConsole;
 
@@ -78,16 +78,70 @@ public:
 			THROW_ON_ERROR(hr);
 
 			PROPVARIANT varName = getName(propertyStore);
-			printf("Endpoint Name: %S\n", varName.pwszVal);
+
+			LPWSTR devId;
+			device->GetId(&devId);
+
+			printf("Endpoint ID: %S Name: %S\n", devId, varName.pwszVal);
 		}
+	}
+
+	LPWSTR SoundDeviceController::getDeviceIdByName(LPWSTR name) {
+		for (ULONG i = 0; i < devicesCount; i++) {
+			IMMDevice *device = NULL;
+			hr = deviceCollection->Item(i, &device);
+			THROW_ON_ERROR(hr)
+
+				IPropertyStore* propertyStore = NULL;
+			hr = device->OpenPropertyStore(STGM_READ, &propertyStore);
+			THROW_ON_ERROR(hr);
+
+			PROPVARIANT varName = getName(propertyStore);
+
+			if (wcscmp(name, varName.pwszVal) == 0) {
+				LPWSTR devId;
+				device->GetId(&devId);
+				return devId;
+			}
+		}
+		return NULL;
 	}
 
 };
 
 int main(int argc, char* argv[]) {
 	SoundDeviceController soundDeviceController;
-	soundDeviceController.listDevices();
-	
-	getchar();
 
+	if (argc > 1) {
+		char* command = argv[1];
+		char* parameter = argv[2];
+
+
+		if (command == NULL) {
+			command = "";
+		}
+		if (parameter == NULL) {
+			parameter = "";
+		}
+
+		if (strcmp(command, "list") == 0) {
+			soundDeviceController.listDevices();
+		}
+		else if (strcmp(command, "setDefault") == 0) {
+			int paramLength = strlen(parameter);
+			size_t convertedChars = 0;
+
+			wchar_t* wtext = NULL;
+			mbstowcs_s(&convertedChars, wtext, paramLength, parameter, _TRUNCATE);
+
+			LPWSTR devId = soundDeviceController.getDeviceIdByName(wtext);
+			soundDeviceController.setDefaultAudioPlaybackDevice(devId);
+		}
+		else {
+			printf("%s", "Usage:\n'SoundDeviceController.exe list' to list all devices\n'SoundDeviceController.exe setDefault \"deviceName\"' to set default device");
+		}
+	} else {
+		printf("%s", "Usage:\n'SoundDeviceController.exe list' to list all devices\n'SoundDeviceController.exe setDefault \"deviceName\"' to set default device");
+	}
+	exit(0);
 }
