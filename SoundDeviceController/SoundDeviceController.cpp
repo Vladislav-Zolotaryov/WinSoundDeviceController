@@ -92,12 +92,11 @@ public:
 			hr = deviceCollection->Item(i, &device);
 			THROW_ON_ERROR(hr)
 
-				IPropertyStore* propertyStore = NULL;
+			IPropertyStore* propertyStore = NULL;
 			hr = device->OpenPropertyStore(STGM_READ, &propertyStore);
 			THROW_ON_ERROR(hr);
 
 			PROPVARIANT varName = getName(propertyStore);
-
 			if (wcscmp(name, varName.pwszVal) == 0) {
 				LPWSTR devId;
 				device->GetId(&devId);
@@ -131,8 +130,9 @@ int main(int argc, char* argv[]) {
 			int paramLength = strlen(parameter);
 			size_t convertedChars = 0;
 
-			wchar_t* wtext = NULL;
-			mbstowcs_s(&convertedChars, wtext, paramLength, parameter, _TRUNCATE);
+			LPWSTR wtext;
+			wtext = new WCHAR[paramLength+1];
+			mbstowcs_s(&convertedChars, wtext, paramLength+1, parameter, _TRUNCATE);
 
 			LPWSTR devId = soundDeviceController.getDeviceIdByName(wtext);
 			soundDeviceController.setDefaultAudioPlaybackDevice(devId);
